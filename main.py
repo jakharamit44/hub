@@ -21,7 +21,7 @@ pbot = Client(
     "dlbot",
     api_id=6,
     api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e",
-    bot_token="5884751568:AAFFZRqYusquif_SPIeXyytsDQBYwDTrAeQ",
+    bot_token="5884751568:AAF-77WviAnRIgssCQ5VEj8kxQ1QgAl6Pu4",
 )
 LOCK = Lock()
 REDIS = Redis.from_url(
