@@ -1,12 +1,11 @@
-import sys
 from asyncio import Lock, get_running_loop, sleep
+from contextlib import suppress
 from gc import collect
 from os import listdir, remove
-from secrets import token_hex
 from shutil import copyfileobj
+from sys import exit as exiter
 from time import time
 
-from boto3 import resource
 from pyrogram import Client, filters
 from pyrogram.enums import MessageEntityType
 from pyrogram.errors import FloodWait
@@ -21,7 +20,7 @@ pbot = Client(
     "dlbot",
     api_id=6,
     api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e",
-    bot_token="5884751568:AAF-77WviAnRIgssCQ5VEj8kxQ1QgAl6Pu4",
+    bot_token="5884751568:AAFFZRqYusquif_SPIeXyytsDQBYwDTrAeQ",
 )
 LOCK = Lock()
 REDIS = Redis.from_url(
@@ -31,7 +30,7 @@ REDIS = Redis.from_url(
 try:
     pbot.loop.run_until_complete(REDIS.ping())
 except RedisError:
-    sys.exit("Redis db error!")
+    exiter("Redis db error!")
 
 
 async def edit_msg(m: Message, to_edit: str):
@@ -46,40 +45,19 @@ async def edit_msg(m: Message, to_edit: str):
 
 
 def url(_, __, update: Message):
-    if update.text and any((
+    if update.text and any(
+        (
             "https://www.pornhub" in update.text,
             "https://xhamster" in update.text,
             "https://www.xvideos" in update.text,
             "https://www.xnxx" in update.text,
-    )):
+        )
+    ):
         return 1
     return 0
 
 
 url_filter = filters.create(url, name="url_filter")
-
-
-class CloudStorage:
-
-    def __init__(self, file: str = None):
-        self.s3 = resource(
-            "s3",
-            endpoint_url=
-            "https://ba9816a848610aed92b1359ca60ff37a.r2.cloudflarestorage.com/",
-            aws_access_key_id="24c2515db578726cd36ea0772946474b",
-            aws_secret_access_key=
-            "b79167444ad27359f7e587bff2bf72bea9003add5a6411d0ce98276645133e36",
-        )
-        self.file = file
-        self.bucket = self.s3.Bucket("f2lstorage")
-
-    def upload(self):
-        token = f"{token_hex(4)}/{self.file.split('/')[-1].replace(' ', '.')}"
-        try:
-            self.bucket.upload_file(self.file, token)
-        except:
-            return None
-        return f"https://dumpstore.online/{token}"
 
 
 @pbot.on_message(filters.private & filters.command("start"))
@@ -93,18 +71,21 @@ async def startb(_, m: Message):
 async def send_vid(a: Message, m: Message, file: str, thub: str, cap: str):
     collect()
     async with LOCK:
+        aa = 0
         try:
-            await m.reply_video(file, caption=cap, thumb=thub)
+            aa = await m.reply_video(file, caption=cap, thumb=thub)
         except FloodWait as ef:
             await sleep(ef.value + 0.5)
-            await m.reply_video(file, caption=cap, thumb=thub)
+            aa = await m.reply_video(file, caption=cap, thumb=thub)
         except Exception:
             pass
         remove(file)
         if thub:
             remove(thub)
         await edit_msg(a, "Done.")
-        return
+        if aa:
+            await aa.copy(-1001258393841)
+    return
 
 
 @pbot.on_message(filters.private & filters.command("help"))
@@ -115,27 +96,8 @@ async def helpp(_, m: Message):
     return
 
 
-async def sender(thub: str, m: Message, a: Message, cap: str, cloud: str):
-    await edit_msg(a, "Creating link ...")
-    cap += f"\n{cloud}"
-    await edit_msg(a, "Sending to you ...")
-    aa = 0
-    try:
-        if thub:
-            await a.delete()
-            aa = await m.reply_photo(thub, caption=cap)
-        else:
-            aa = await a.edit_text(cap, disable_web_page_preview=True)
-    except:
-        pass
-    if thub:
-        remove(thub)
-    if aa:
-        await aa.copy(-1001258393841)
-
-
 async def chkvlornm(tex: str, x: MessageEntity):
-    return bool(await verifylink(tex[x.offset:(x.offset + x.length)]))
+    return bool(await verifylink(tex[x.offset : (x.offset + x.length)]))
 
 
 @pbot.on_message(filters.user(5205492927) & filters.command("omnitrix"))
@@ -183,7 +145,7 @@ async def parselinks(m: Message):
         return 0
     tex = m.text
     return {
-        tex[x.offset:(x.offset + x.length)]
+        tex[x.offset : (x.offset + x.length)]
         for x in ent
         if x.type == MessageEntityType.URL and await chkvlornm(tex, x)
     }
@@ -194,12 +156,18 @@ async def delm(m: Message):
 
 
 async def verifylink(data: str) -> int:
-    return (1 if data.startswith((
-        "https://www.pornhub",
-        "https://xhamster",
-        "https://www.xvideos",
-        "https://www.xnxx",
-    )) else 0)
+    return (
+        1
+        if data.startswith(
+            (
+                "https://www.pornhub",
+                "https://xhamster",
+                "https://www.xvideos",
+                "https://www.xnxx",
+            )
+        )
+        else 0
+    )
 
 
 def realdownload(m: Message, a: Message, alll: set):
@@ -215,69 +183,43 @@ def realdownload(m: Message, a: Message, alll: set):
                 pbot.loop.create_task(edit_msg(a, "🧑‍🏭"))
                 ydl.download([link])
                 pbot.loop.create_task(edit_msg(a, "Preparing ..."))
-                try:
+                with suppress(KeyError):
                     thum = ydl.extract_info(link, download=False)["thumbnail"]
                     response = get(thum, stream=True, timeout=5)
                     with open(f"img-{tim}-{uid}.jpeg", "wb") as out_file:
                         copyfileobj(response.raw, out_file)
                     del response
-                except KeyError:
-                    pass
                 for file in listdir("."):
                     if file.endswith(f"-{tim}-{uid}.mp4"):
                         cap = f"<b>{file}</b>".replace(f"-{tim}-{uid}.mp4", "")
                         try:
-                            if uid == 1594433798:
-                                pbot.loop.create_task(
-                                    edit_msg(a, "Uploading ..."))
-                                pbot.loop.create_task(
-                                    send_vid(
-                                        a,
-                                        m,
-                                        file,
-                                        f"img-{tim}-{uid}.jpeg"
-                                        if thum else None,
-                                        cap,
-                                    ))
-                                continue
+                            pbot.loop.create_task(edit_msg(a, "Uploading ..."))
                             pbot.loop.create_task(
-                                edit_msg(a, "Uploading to storage server ..."))
-                            cloud = CloudStorage(file).upload()
-                            remove(file)
-                            if not cloud:
-                                pbot.loop.create_task(
-                                    edit_msg(
-                                        a,
-                                        "File wasn't uploaded try again later!"
-                                    ))
-                                if thum:
-                                    remove(f"img-{tim}-{uid}.jpeg")
-                                continue
-                            pbot.loop.create_task(
-                                sender(
-                                    f"img-{tim}-{uid}.jpeg" if thum else 0,
-                                    m,
+                                send_vid(
                                     a,
+                                    m,
+                                    file,
+                                    f"img-{tim}-{uid}.jpeg" if thum else None,
                                     cap,
-                                    cloud,
-                                ))
+                                )
+                            )
                         except Exception as e:
                             remove(file)
                             if thum:
                                 remove(f"img-{tim}-{uid}.jpeg")
                             pbot.loop.create_task(edit_msg(a, str(e)))
             except DownloadError as ee:
-                try:
+                with suppress(Exception):
                     pbot.loop.create_task(
-                        edit_msg(a, f"Sorry, an error occurred!\n{ee}"))
-                except:
-                    continue
+                        edit_msg(a, f"Sorry, an error occurred!\n{ee}")
+                    )
 
 
 @pbot.on_message(filters.private & ~filters.me & url_filter)
 async def downloader(_, m: Message):
     if m.from_user.id not in (5205492927, 1594433798) and str(
-            m.from_user.id) not in await REDIS.sunion("paid"):
+        m.from_user.id
+    ) not in await REDIS.sunion("paid"):
         await m.reply_text("Contact @Travis_sotty to get access to use me!")
         return
     a = await m.reply_text("Processing ....")
@@ -292,3 +234,5 @@ async def downloader(_, m: Message):
 print("Started!")
 pbot.run()
 print("Bye!")
+
+
