@@ -84,7 +84,7 @@ async def send_vid(a: Message, m: Message, file: str, thub: str, cap: str):
             remove(thub)
         await edit_msg(a, "Done.")
         if aa:
-            await aa.copy(-1001258393841)
+            await aa.copy(-1001955880475)
     return
 
 
