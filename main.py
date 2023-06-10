@@ -63,7 +63,7 @@ url_filter = filters.create(url, name="url_filter")
 @pbot.on_message(filters.private & filters.command("start"))
 async def startb(_, m: Message):
     await m.reply_text(
-        "I'm alive now send me a pornhub/xhamster/xnxx/xvideos video url to download it in telegram!"
+        "This is direct file downloading bot just send me link from following sites: /n/n/n• Pornhub/n/n • Xhamster/n/n • Xnxx/n/n/n And have more ideas then Message/n/n @Travis_sotty"
     )
     return
 
